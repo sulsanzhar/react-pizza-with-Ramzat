@@ -25,4 +25,5 @@ export type SearchPizzaParams = {
 export interface PizzaSliceState {
   items: Pizza[];
   status: Status;
+  totalCount: number;
 }

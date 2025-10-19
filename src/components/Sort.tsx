@@ -8,10 +8,6 @@ type SortItem = {
   sortProperty: SortPropertyEnum;
 };
 
-type PopupClick = MouseEvent & {
-  path: Node[];
-};
-
 type SortPopupProps = {
   value: SortType;
 };
@@ -28,28 +24,27 @@ export const sortList: SortItem[] = [
 export const Sort: React.FC<SortPopupProps> = React.memo(({ value }) => {
   const dispatch = useDispatch();
   const sortRef = React.useRef<HTMLDivElement>(null);
-
   const [open, setOpen] = React.useState(false);
-
+  
   const onClickListItem = (obj: SortItem) => {
     dispatch(setSort(obj));
     setOpen(false);
   };
-
+  
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const _event = event as PopupClick;
-
-      if (sortRef.current && !_event.path.includes(sortRef.current)) {
+      // ✅ вместо устаревшего event.path
+      const path = event.composedPath ? event.composedPath() : [];
+      
+      if (sortRef.current && !path.includes(sortRef.current)) {
         setOpen(false);
       }
     };
-
+    
     document.body.addEventListener('click', handleClickOutside);
-
     return () => document.body.removeEventListener('click', handleClickOutside);
   }, []);
-
+  
   return (
     <div ref={sortRef} className="sort">
       <div className="sort__label">
@@ -67,6 +62,7 @@ export const Sort: React.FC<SortPopupProps> = React.memo(({ value }) => {
         <b>Сортировка по:</b>
         <span onClick={() => setOpen(!open)}>{value.name}</span>
       </div>
+      
       {open && (
         <div className="sort__popup">
           <ul>

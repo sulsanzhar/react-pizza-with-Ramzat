@@ -5,6 +5,7 @@ import { Pizza, PizzaSliceState, Status } from './types';
 const initialState: PizzaSliceState = {
   items: [],
   status: Status.LOADING, // loading | success | error
+  totalCount: 0,          // 🔥 добавили поле для общего числа пицц
 };
 
 const pizzaSlice = createSlice({
@@ -16,19 +17,23 @@ const pizzaSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchPizzas.pending, (state, action) => {
+    builder.addCase(fetchPizzas.pending, (state) => {
       state.status = Status.LOADING;
       state.items = [];
+      state.totalCount = 0;
     });
-
+    
     builder.addCase(fetchPizzas.fulfilled, (state, action) => {
-      state.items = action.payload;
+      // 🔥 теперь payload — это объект { items, totalCount }
+      state.items = action.payload.items;
+      state.totalCount = action.payload.totalCount;
       state.status = Status.SUCCESS;
     });
-
-    builder.addCase(fetchPizzas.rejected, (state, action) => {
+    
+    builder.addCase(fetchPizzas.rejected, (state) => {
       state.status = Status.ERROR;
       state.items = [];
+      state.totalCount = 0;
     });
   },
 });
