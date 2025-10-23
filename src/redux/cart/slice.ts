@@ -1,75 +1,98 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { calcTotalPrice } from '../../utils/calcTotalPrice';
-import { CartItem, CartSliceState } from './types';
-import { ref, get, set } from 'firebase/database';
-import { db } from '../../firebase';
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { calcTotalPrice } from "../../utils/calcTotalPrice";
+import { CartItem, CartSliceState } from "./types";
+import { ref, set } from "firebase/database";
+import { db } from "../../firebase";
+import { getCartFromFirebase } from "../../utils/getCartFromLS";
 
 export const fetchCartFromFirebase = createAsyncThunk(
-  'cart/fetchCart',
-  async () => {
-    const snapshot = await get(ref(db, 'cart'));
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      return {
-        items: data.items || [],
-        totalPrice: data.totalPrice || 0,
-      };
-    } else {
-      return { items: [], totalPrice: 0 };
+  "cart/fetchCart",
+  async (uid: string, { rejectWithValue }) => {
+    try {
+      console.log("📦 Загружаем корзину из Firebase для UID:", uid);
+      return await getCartFromFirebase(uid);
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
-  },
+  }
 );
 
-// 🔹 Сохранение корзины в Firebase
-const saveCartToFirebase = async (state: CartSliceState) => {
-  await set(ref(db, 'cart'), state);
+const saveCartToFirebase = async (
+  uid: string | null,
+  state: CartSliceState
+) => {
+  if (!uid) return;
+  
+  if (!state.items || state.items.length === 0) {
+    console.log("⚠️ Пропускаем сохранение: корзина пуста");
+    return;
+  }
+
+  const pureState = JSON.parse(JSON.stringify(state));
+  await set(ref(db, `carts/${uid}`), {
+    items: pureState.items,
+    totalPrice: pureState.totalPrice,
+  });
+
+  console.log("✅ Корзина сохранена в Firebase:", pureState);
 };
 
 const initialState: CartSliceState = {
   items: [],
   totalPrice: 0,
+  isLoading: false,
 };
 
 const cartSlice = createSlice({
-  name: 'cart',
+  name: "cart",
   initialState,
   reducers: {
-    addItem(state, action: PayloadAction<CartItem>) {
-      const findItem = state.items.find((obj) => obj.id === action.payload.id);
-      
-      if (findItem) {
-        findItem.count++;
-      } else {
-        state.items.push({ ...action.payload, count: 1 });
-      }
-      
+    addItem(
+      state,
+      action: PayloadAction<{ item: CartItem; uid: string | null }>
+    ) {
+      const { item, uid } = action.payload;
+      const findItem = state.items.find((obj) => obj.id === item.id);
+      if (findItem) findItem.count++;
+      else state.items.push({ ...item, count: 1 });
+
       state.totalPrice = calcTotalPrice(state.items);
-      saveCartToFirebase(state);
+      saveCartToFirebase(uid, state);
     },
-    minusItem(state, action: PayloadAction<string>) {
-      const findItem = state.items.find((obj) => obj.id === action.payload);
-      if (findItem && findItem.count > 1) {
-        findItem.count--;
-      } else {
-        state.items = state.items.filter((obj) => obj.id !== action.payload);
-      }
-      
+
+    minusItem(
+      state,
+      action: PayloadAction<{ id: string; uid: string | null }>
+    ) {
+      const { id, uid } = action.payload;
+      const findItem = state.items.find((obj) => obj.id === id);
+      if (findItem && findItem.count > 1) findItem.count--;
+      else state.items = state.items.filter((obj) => obj.id !== id);
+
       state.totalPrice = calcTotalPrice(state.items);
-      saveCartToFirebase(state);
+      saveCartToFirebase(uid, state);
     },
-    removeItem(state, action: PayloadAction<string>) {
-      state.items = state.items.filter((obj) => obj.id !== action.payload);
+
+    removeItem(
+      state,
+      action: PayloadAction<{ id: string; uid: string | null }>
+    ) {
+      const { id, uid } = action.payload;
+      state.items = state.items.filter((obj) => obj.id !== id);
       state.totalPrice = calcTotalPrice(state.items);
-      saveCartToFirebase(state);
+      saveCartToFirebase(uid, state);
     },
-    clearItems(state) {
+
+    clearItems(state, action: PayloadAction<{ uid: string | null }>) {
+      const { uid } = action.payload;
       state.items = [];
       state.totalPrice = 0;
-      saveCartToFirebase(state);
+      saveCartToFirebase(uid, state);
     },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchCartFromFirebase.fulfilled, (state, action) => {
+      console.log("🟢 Корзина получена из Firebase:", action.payload);
       state.items = action.payload.items;
       state.totalPrice = action.payload.totalPrice;
     });

@@ -1,33 +1,42 @@
-import Loadable from 'react-loadable';
-import React, { Suspense, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { useAppDispatch } from './redux/store';
+import Loadable from "react-loadable";
+import React, { Suspense, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
+import { useAppDispatch } from "./redux/store";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
 
-import Home from './pages/Home';
-import './scss/app.scss';
-import MainLayout from './layouts/MainLayout';
+import Home from "./pages/Home";
+import Auth from "./pages/Auth";
+import "./scss/app.scss";
+import MainLayout from "./layouts/MainLayout";
 
-// ✅ импортируем экшен для загрузки корзины
-import { fetchCartFromFirebase } from './redux/cart/slice';
+import { fetchCartFromFirebase } from "./redux/cart/slice";
 
 const Cart = Loadable({
-  loader: () => import(/* webpackChunkName: "Cart" */ './pages/Cart'),
+  loader: () => import("./pages/Cart"),
   loading: () => <div>Идёт загрузка корзины...</div>,
 });
-
-const FullPizza = React.lazy(() => import(/* webpackChunkName: "FullPizza" */ './pages/FullPizza'));
-const NotFound = React.lazy(() => import(/* webpackChunkName: "NotFound" */ './pages/NotFound'));
+const FullPizza = React.lazy(() => import("./pages/FullPizza"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 function App() {
   const dispatch = useAppDispatch();
-  
-  // 🔥 при старте загружаем корзину из Firebase
+
   useEffect(() => {
-    dispatch(fetchCartFromFirebase());
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        console.log("👤 Пользователь вошёл:", currentUser.uid);
+        dispatch(fetchCartFromFirebase(currentUser.uid));
+      } else {
+        console.log("👤 Пользователь не аутентифицирован");
+      }
+    });
+    return () => unsubscribe();
   }, [dispatch]);
-  
+
   return (
     <Routes>
+      <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<MainLayout />}>
         <Route path="" element={<Home />} />
         <Route

@@ -20,6 +20,7 @@
 
   &__logo {
     display: flex;
+    align-items: center;
 
     img {
       margin-right: 15px;
@@ -35,6 +36,86 @@
 
     p {
       color: #7b7b7b;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff4ef;
+    padding: 6px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(254, 95, 30, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  &__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  &__avatar.placeholder {
+    background: #ffe0d1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  &__email {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    max-width: 130px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  &__logout,
+  &__login {
+    border: none;
+    background: $orange;
+    color: white;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 13px;
+    font-weight: 500;
+
+    &:hover {
+      background: darken($orange, 5%);
+    }
+  }
+
+  @media (max-width: 768px) {
+    &__user {
+      padding: 4px 8px;
+      gap: 6px;
+    }
+
+    &__email {
+      display: none;
+    }
+
+    &__logout {
+      padding: 5px 8px;
+      font-size: 12px;
     }
   }
 }
